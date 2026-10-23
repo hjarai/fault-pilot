@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Whose Fault Was It?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, phone first. Each exchange reads top to bottom as request -> edit -> follow-up,
+   with the two sides of the question colored consistently: user = ink blue, model = ochre. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --sunk:#eceef3; --line:#d9dce5;
+  --ink:#191c25; --ink2:#525868; --ink3:#7a8090;
+  --user:#2457a6; --user-soft:#e3ebf8; --model:#b0601a; --model-soft:#f8eadb;
+  --both:#6b5aa8; --both-soft:#ece8f7; --mark:#ffe58a; --ok:#2f7a4f;
+  --f-display:"Newsreader", Georgia, "Times New Roman", serif;
+  --f-ui:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13151b; --surface:#1c1f28; --sunk:#252935; --line:#343949;
+  --ink:#eceef4; --ink2:#b3b8c6; --ink3:#8a90a0;
+  --user:#7ea7ec; --user-soft:#1f2c45; --model:#e3a065; --model-soft:#3a2a1b;
+  --both:#ab9cf0; --both-soft:#2c2645; --mark:#6b5a12; --ok:#6fcf97; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#13151b; --surface:#1c1f28; --sunk:#252935; --line:#343949;
+  --ink:#eceef4; --ink2:#b3b8c6; --ink3:#8a90a0;
+  --user:#7ea7ec; --user-soft:#1f2c45; --model:#e3a065; --model-soft:#3a2a1b;
+  --both:#ab9cf0; --both-soft:#2c2645; --mark:#6b5a12; --ok:#6fcf97; color-scheme:dark }
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-ui)}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px;display:flex;flex-direction:column;gap:16px}
+h1{font:600 clamp(28px,7vw,40px)/1.1 var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:600 22px/1.2 var(--f-display);margin:0;text-wrap:balance}
+p{margin:0}
+.lede{color:var(--ink2);max-width:60ch}
+.eyebrow{font:500 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dots{display:flex;gap:6px}
+.dots i{width:22px;height:6px;border-radius:3px;background:var(--line)}
+.dots i.done{background:var(--ink3)} .dots i.now{background:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:14px}
+.step{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.step .n{font:500 12px/28px var(--f-mono);text-align:center;width:28px;height:28px;border-radius:50%;color:var(--surface)}
+.step .n.u{background:var(--user)} .step .n.m{background:var(--model)}
+.step .body{min-width:0;display:flex;flex-direction:column;gap:6px}
+.who{font:600 12px/1.2 var(--f-ui);letter-spacing:.04em;text-transform:uppercase}
+.who.u{color:var(--user)} .who.m{color:var(--model)}
+.quote{font:400 17px/1.45 var(--f-display);background:var(--user-soft);border-radius:4px 12px 12px 12px;padding:10px 12px;overflow-wrap:anywhere}
+.texts{display:grid;grid-template-columns:1fr;gap:8px}
+@media (min-width:560px){.texts{grid-template-columns:1fr 1fr}}
+.tx{min-width:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.tx .lab{font:500 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;background:var(--sunk);color:var(--ink2)}
+.tx.e .lab{background:var(--model-soft);color:var(--model)}
+.tx .t{font:400 15px/1.5 var(--f-display);padding:10px;max-height:12.5em;overflow:auto;overflow-wrap:anywhere}
+mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
+.fact{font:500 13px/1.4 var(--f-mono);color:var(--ink2);display:flex;gap:8px;align-items:baseline}
+.fact::before{content:"measured";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--surface);background:var(--ink3);border-radius:3px;padding:2px 5px}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;font:12px/1 var(--f-mono);color:var(--ink2)}
+.bar{height:10px;border-radius:2px}
+.bar.o{background:var(--ink3)} .bar.e{background:var(--model)}
+.q{display:flex;flex-direction:column;gap:12px;padding-top:4px;border-top:1px dashed var(--line)}
+.qt{font:600 19px/1.3 var(--f-display);text-wrap:balance}
+.mode{font:500 10px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;border:1.5px solid var(--line);border-radius:10px;padding:12px;font:500 14px/1.3 var(--f-ui);display:flex;align-items:center;gap:8px;min-height:56px;background:var(--surface);color:var(--ink)}
+.opt:focus-visible,.seg button:focus-visible,.chip:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.opt .sw{width:12px;height:12px;border-radius:50%;flex:none}
+.opt[data-k=model] .sw{background:var(--model)} .opt[data-k=user] .sw{background:var(--user)}
+.opt[data-k=both] .sw{background:linear-gradient(90deg,var(--user) 50%,var(--model) 50%)} .opt[data-k=cant] .sw{background:var(--line)}
+.opt[aria-pressed=true][data-k=model]{border-color:var(--model);background:var(--model-soft)}
+.opt[aria-pressed=true][data-k=user]{border-color:var(--user);background:var(--user-soft)}
+.opt[aria-pressed=true][data-k=both]{border-color:var(--both);background:var(--both-soft)}
+.opt[aria-pressed=true][data-k=cant]{border-color:var(--ink3);background:var(--sunk)}
+.slider{display:flex;flex-direction:column;gap:8px}
+.slider input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:28px;background:transparent}
+.slider input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--user),var(--both),var(--model))}
+.slider input[type=range]::-moz-range-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--user),var(--both),var(--model))}
+.slider input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;margin-top:-8px;border-radius:50%;background:var(--surface);border:3px solid var(--ink)}
+.slider input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--surface);border:3px solid var(--ink)}
+.slider.untouched input[type=range]::-webkit-slider-thumb{border-style:dashed;opacity:.6}
+.ends{display:flex;justify-content:space-between;gap:12px;font:500 13px/1.3 var(--f-ui)}
+.ends span:first-child{color:var(--user)} .ends span:last-child{color:var(--model);text-align:right}
+.hint{font:13px/1.4 var(--f-ui);color:var(--ink3)}
+textarea{width:100%;box-sizing:border-box;min-height:84px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font:15px/1.45 var(--f-ui);background:var(--surface);color:var(--ink);resize:vertical}
+textarea.short{min-height:44px}
+.row{display:flex;flex-direction:column;gap:6px}
+.lbl{font:600 13px/1.3 var(--f-ui);color:var(--ink2)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button,.chip{all:unset;cursor:pointer;border:1.5px solid var(--line);border-radius:999px;padding:7px 12px;font:500 13px/1 var(--f-ui);background:var(--surface);color:var(--ink)}
+.seg button[aria-pressed=true],.chip[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.check{display:flex;align-items:center;gap:8px;font:14px var(--f-ui);color:var(--ink2)}
+.btn{all:unset;cursor:pointer;text-align:center;background:var(--ink);color:var(--surface);border-radius:10px;padding:14px 18px;font:600 15px/1 var(--f-ui)}
+.btn[disabled]{opacity:.35;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.seats{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.seats button{all:unset;cursor:pointer;text-align:center;border:1.5px solid var(--line);border-radius:8px;padding:10px 0;font:500 16px/1 var(--f-mono);background:var(--surface);color:var(--ink)}
+.seats button[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.key{display:flex;gap:14px;flex-wrap:wrap;font:13px/1.3 var(--f-ui);color:var(--ink2)}
+.key b{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.feedback{border-left:4px solid var(--model);background:var(--model-soft);padding:10px 12px;border-radius:0 8px 8px 0;font-size:14px}
+.status{font:13px var(--f-ui);color:var(--ink3)}
+.status.ok{color:var(--ok)}
+pre.copy{white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.4 var(--f-mono);background:var(--sunk);padding:10px;border-radius:8px;max-height:12em;overflow:auto}
+.res{display:flex;flex-direction:column;gap:10px}
+.res .it{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.stack{display:flex;height:16px;border-radius:4px;overflow:hidden;background:var(--sunk)}
+.stack span{display:block;height:100%}
+.strip{position:relative;height:22px;border-radius:4px;background:linear-gradient(90deg,var(--user-soft),var(--both-soft),var(--model-soft))}
+.strip i{position:absolute;top:3px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid var(--surface)}
+.small{font-size:12px;color:var(--ink3)}
+ul.texts-list{margin:0;padding-left:18px;font:14px/1.4 var(--f-display)}
+@media (prefers-reduced-motion:no-preference){.card{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+<style>
+.qs{display:flex;flex-direction:column;gap:12px}
+.yn{display:grid;grid-template-columns:repeat(3,1fr);gap:6px} .yn.four{grid-template-columns:1fr 1fr}
+.yn button{all:unset;cursor:pointer;text-align:center;border:1.5px solid var(--line);border-radius:10px;padding:12px 4px;font:500 14px/1.2 var(--f-ui);background:var(--surface);color:var(--ink)}
+.yn button:focus-visible,.cell:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.yn.m button[aria-pressed=true][data-v=yes]{background:var(--model-soft);border-color:var(--model)}
+.yn.u button[aria-pressed=true][data-v=yes]{background:var(--user-soft);border-color:var(--user)}
+.yn button[aria-pressed=true][data-v=no]{background:var(--sunk);border-color:var(--ink2)}
+.yn button[aria-pressed=true][data-v=cant]{background:var(--sunk);border-color:var(--ink3);border-style:dashed}
+.yn.four button[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink);border-style:solid}
+.ql{font:600 15px/1.3 var(--f-ui)} .ql.m{color:var(--model)} .ql.u{color:var(--user)}
+.grid2{display:grid;grid-template-columns:72px 1fr 1fr;grid-template-rows:auto auto auto;gap:6px;align-items:stretch}
+.grid2 .ax{font:500 11px/1.25 var(--f-mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);display:flex;align-items:center;justify-content:center;text-align:center}
+.grid2 .ax.top{color:var(--user)} .grid2 .ax.side{color:var(--model);width:72px;text-align:right;justify-content:flex-end}
+.cell{all:unset;cursor:pointer;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;min-height:84px;padding:10px;display:flex;flex-direction:column;justify-content:center;gap:4px;text-align:center;font:600 15px/1.2 var(--f-ui);color:var(--ink);background:var(--surface)}
+.cell small{font:400 12px/1.3 var(--f-ui);color:var(--ink3)}
+.cell[data-q=both]{background:linear-gradient(135deg,var(--user-soft),var(--model-soft))}
+.cell[data-q=model]{background:var(--model-soft)} .cell[data-q=user]{background:var(--user-soft)} .cell[data-q=neither]{background:var(--sunk)}
+.cell[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink)}
+.cantbtn{align-self:center}
+.predict{border:1.5px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.veil{border:1.5px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--ink3);font:14px/1.4 var(--f-ui)}
+.qtable{display:grid;grid-template-columns:1fr repeat(5,auto);gap:4px 8px;font:12px/1.3 var(--f-mono);align-items:center}
+.qtable b{font-weight:500;color:var(--ink2)}
+.pill{display:inline-block;min-width:22px;text-align:center;border-radius:4px;padding:2px 4px;font:500 12px/1.2 var(--f-mono)}
+.vs{display:grid;grid-template-columns:1fr;gap:8px} @media (min-width:560px){.vs{grid-template-columns:1fr 1fr}}
+.vbox{border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const ITEMS = {"c1x": {"id": "c1x", "group": "length_stated", "version": "vague", "request": "Make this more professional.", "original": "Hi Dana, the report will be late. The data came in Friday instead of Tuesday, so I need two more days. I'll send it Thursday. Sorry about that. Sam", "edit": "Dear Dana, I wanted to let you know that the report will be delayed. The data arrived on Friday instead of Tuesday, so I will need two additional days to complete it. I expect to send it on Thursday. I apologize for the inconvenience. Best regards, Sam", "followup": "Too long. Cut it down.", "wo": 30, "we": 47, "lengthBars": true, "pred": {"q": "What should the edit do to the length?", "opts": [["shorter", "Make it shorter"], ["same", "Keep it about the same"], ["longer", "Make it longer"], ["unsure", "No idea"]]}, "hl": {}, "note": "request did not mention length", "constructed": true, "fact": "Original 30 words, edit 47 words."}, "c1y": {"id": "c1y", "group": "length_stated", "version": "stated", "request": "Make this more professional, but keep it short.", "original": "Hi Dana, the report will be late. The data came in Friday instead of Tuesday, so I need two more days. I'll send it Thursday. Sorry about that. Sam", "edit": "Dear Dana, I wanted to let you know that the report will be delayed. The data arrived on Friday instead of Tuesday, so I will need two additional days to complete it. I expect to send it on Thursday. I apologize for the inconvenience. Best regards, Sam", "followup": "Too long. Cut it down.", "wo": 30, "we": 47, "lengthBars": true, "pred": {"q": "What should the edit do to the length?", "opts": [["shorter", "Make it shorter"], ["same", "Keep it about the same"], ["longer", "Make it longer"], ["unsure", "No idea"]]}, "hl": {"request": ["but keep it short"]}, "note": "request said keep it short", "constructed": true, "fact": "Original 30 words, edit 47 words."}, "c3x": {"id": "c3x", "group": "source_clue", "version": "cover_letter", "request": "Simplify this.", "original": "I am writing to express my interest in the Research Assistant position. My experience in data collection and statistical analysis has prepared me to contribute to your laboratory's ongoing projects.", "edit": "I'd like to apply for the Research Assistant job. I've done a lot of data collection and stats work, so I think I could really help with your lab's projects.", "followup": "This sounds too casual now.", "wo": 31, "we": 33, "lengthBars": false, "pred": {"q": "What should simplifying do to the tone?", "opts": [["keep", "Keep the original's tone"], ["relaxed", "Make it more relaxed"], ["formal", "Make it more formal"], ["unsure", "No idea"]]}, "hl": {}, "note": "source is a cover letter; edit mildly relaxed", "constructed": true, "fact": ""}, "c3y": {"id": "c3y", "group": "source_clue", "version": "blog", "request": "Simplify this.", "original": "Honestly, I never expected to get into sourdough, but after three failed loaves I finally figured out that my starter simply needed more time and a warmer spot in the kitchen.", "edit": "I didn't expect to get into sourdough, but after three bad loaves I figured it out: my starter just needed more time and a warmer spot.", "followup": "This sounds too casual now.", "wo": 31, "we": 27, "lengthBars": false, "pred": {"q": "What should simplifying do to the tone?", "opts": [["keep", "Keep the original's tone"], ["relaxed", "Make it more relaxed"], ["formal", "Make it more formal"], ["unsure", "No idea"]]}, "hl": {}, "note": "source is a casual blog post; edit mildly relaxed", "constructed": true, "fact": ""}, "c4x": {"id": "c4x", "group": "formality", "version": "light", "request": "Rephrase this professionally.", "original": "hey, can we push the meeting to 3? something came up on my end", "edit": "Hi, could we move the meeting to 3? Something came up on my end.", "followup": "Can you make it a little less formal?", "wo": 14, "we": 14, "lengthBars": false, "pred": {"q": "How formal should the rewrite be?", "opts": [["slight", "A little more formal"], ["very", "Very formal"], ["unsure", "No idea"]]}, "hl": {}, "note": "lightly formal edit", "constructed": true, "fact": ""}, "c4y": {"id": "c4y", "group": "formality", "version": "moderate", "request": "Rephrase this professionally.", "original": "hey, can we push the meeting to 3? something came up on my end", "edit": "Would it be possible to move our meeting to 3:00 p.m.? Something has come up on my end, and I apologize for the short notice.", "followup": "Can you make it a little less formal?", "wo": 14, "we": 27, "lengthBars": false, "pred": {"q": "How formal should the rewrite be?", "opts": [["slight", "A little more formal"], ["very", "Very formal"], ["unsure", "No idea"]]}, "hl": {}, "note": "moderately formal edit, also adds an apology", "constructed": true, "fact": ""}, "c5x": {"id": "c5x", "group": "fix_scope", "version": "one_word", "request": "Fix the grammar in this resume bullet.", "original": "Oversaw a team of 5 interns and train them on data entry procedures.", "edit": "Supervised a team of 5 interns and trained them on data entry procedures.", "followup": "I only wanted the grammar fixed.", "wo": 13, "we": 13, "lengthBars": false, "pred": {"q": "Should a grammar fix change words that weren't wrong?", "opts": [["no", "No, only fix the errors"], ["yes", "Yes, if it reads better"], ["unsure", "No idea"]]}, "hl": {"original": ["Oversaw"], "edit": ["Supervised"]}, "note": "grammar fix plus one word swapped", "constructed": true, "fact": ""}, "c5y": {"id": "c5y", "group": "fix_scope", "version": "reworded", "request": "Fix the grammar in this resume bullet.", "original": "Oversaw a team of 5 interns and train them on data entry procedures.", "edit": "Led and trained a five-person intern team in data entry procedures.", "followup": "I only wanted the grammar fixed.", "wo": 13, "we": 12, "lengthBars": false, "pred": {"q": "Should a grammar fix change words that weren't wrong?", "opts": [["no", "No, only fix the errors"], ["yes", "Yes, if it reads better"], ["unsure", "No idea"]]}, "hl": {}, "note": "grammar fix plus the whole bullet reworded", "constructed": true, "fact": ""}, "c6x": {"id": "c6x", "group": "degree", "version": "small_cut", "request": "Make it shorter.", "original": "Our community garden is open to everyone in the neighborhood. Members can rent a plot for the season, and we provide tools, compost, and water at no extra cost. Volunteers meet every Saturday morning to help with the shared beds, and new gardeners are always welcome to join and learn from more experienced members.", "edit": "Our community garden is open to everyone in the neighborhood. Members can rent a plot for the season, and we provide tools, compost, and water for free. Volunteers meet every Saturday morning to tend the shared beds, and new gardeners are always welcome to learn from experienced members.", "followup": "Shorter.", "wo": 54, "we": 48, "lengthBars": true, "pred": {"q": "How much shorter should it get?", "opts": [["little", "A little (about 10%)"], ["third", "About a third"], ["half", "About half or more"], ["unsure", "No idea"]]}, "hl": {}, "note": "edit barely cut", "constructed": true, "fact": "Original 54 words, edit 48 words."}, "c6y": {"id": "c6y", "group": "degree", "version": "large_cut", "request": "Make it shorter.", "original": "Our community garden is open to everyone in the neighborhood. Members can rent a plot for the season, and we provide tools, compost, and water at no extra cost. Volunteers meet every Saturday morning to help with the shared beds, and new gardeners are always welcome to join and learn from more experienced members.", "edit": "Our community garden is open to all neighbors. Rent a plot for the season; tools, compost and water are free. Volunteers meet Saturday mornings, and beginners are welcome.", "followup": "Shorter.", "wo": 54, "we": 28, "lengthBars": true, "pred": {"q": "How much shorter should it get?", "opts": [["little", "A little (about 10%)"], ["third", "About a third"], ["half", "About half or more"], ["unsure", "No idea"]]}, "hl": {}, "note": "edit cut about half", "constructed": true, "fact": "Original 54 words, edit 28 words."}, "p0": {"id": "p0", "group": "practice", "version": "practice", "request": "Shorten this to two sentences.", "original": "The library will close early on Friday for staff training. Returns can still be dropped in the outside box. The study rooms will reopen on Saturday at 9 a.m. We are sorry for any inconvenience.", "edit": "The library closes early on Friday for staff training. You can still use the outside return box. Study rooms reopen Saturday at 9 a.m. We apologize for the inconvenience.", "followup": "I asked for two sentences.", "wo": 36, "we": 30, "lengthBars": false, "pred": null, "hl": {"request": ["two sentences"]}, "note": "", "constructed": true, "fact": "The edit has 4 sentences; the request asked for 2."}, "c7x": {"id": "c7x", "group": "flow_cut", "version": "kept", "request": "Make this flow better.", "original": "Our team finished the survey in March. We talked to 40 small business owners. Most of them said rent was their biggest worry. Several also mentioned hiring. We will share the full results at the April meeting.", "edit": "In March, our team finished a survey of 40 small business owners. Most of them said rent was their biggest worry, and several also mentioned hiring. We will share the full results at the April meeting.", "followup": "Can you say more about hiring?", "wo": 37, "we": 36, "lengthBars": true, "pred": {"q": "What should making it flow better do to the content?", "opts": [["keep", "Keep everything"], ["cut", "Cut what isn't needed"], ["add", "Add more"], ["unsure", "No idea"]]}, "hl": {}, "note": "edit kept the hiring point; person wants more", "constructed": true, "fact": "Original 37 words, edit 36 words."}, "c7y": {"id": "c7y", "group": "flow_cut", "version": "cut", "request": "Make this flow better.", "original": "Our team finished the survey in March. We talked to 40 small business owners. Most of them said rent was their biggest worry. Several also mentioned hiring. We will share the full results at the April meeting.", "edit": "In March, our team surveyed 40 small business owners, and most said rent was their biggest worry. We will share the full results at the April meeting.", "followup": "Can you say more about hiring?", "wo": 37, "we": 27, "lengthBars": true, "pred": {"q": "What should making it flow better do to the content?", "opts": [["keep", "Keep everything"], ["cut", "Cut what isn't needed"], ["add", "Add more"], ["unsure", "No idea"]]}, "hl": {}, "note": "edit dropped the hiring point", "constructed": true, "fact": "Original 37 words, edit 27 words."}};
+const PRACTICE = "p0";
+const GROUPS = [["c1x","c1y"],["c4x","c4y"],["c7x","c7y"],["c5x","c5y"],["c6x","c6y"]];
+const PAIR = ["c3x","c3y"];
+const CHANGED = [["length","Length"],["tone","Tone"],["wording","Wording"],["content","Content"],["none","Nothing much"]];
+const GROUP_NAME = { length_stated:"Length: was it stated?", source_clue:"Tone: did the original give a clue? (side by side)", flow_cut:"Side effect or new wish?",
+  formality:"How formal is professional?", fix_scope:"How much may a grammar fix change?", degree:"How far is far enough?" };
+const MISSING = [["audience","who it's for"],["meaning","what the request meant"],["purpose","what the original was for"],["taste","the person's own taste"],["other","something else"]];
+const app = document.getElementById("app");
+const FORM = "https://docs.google.com/forms/d/e/1FAIpQLScNgWvNWm3mrLkzFWlcyXKkmQWccb60JQWb36meAE5gnqFk_w", ENTRY = "entry.623660658";
+const SID = (() => { try { return crypto.randomUUID().slice(0, 8); } catch (e) { return Math.random().toString(36).slice(2, 10); } })();
+let isOwner = false, saveState = "local", sent = 0;
+const S = { seat: null, plan: null, idx: 0, answers: [], startedAt: null, view: "task" };
+
+function el(tag, attrs = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+}
+function marked(text, terms) {
+  const span = el("span");
+  if (!terms || !terms.length) { span.textContent = text; return span; }
+  const esc = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).sort((a, b) => b.length - a.length);
+  const re = new RegExp("(" + esc.join("|") + ")", "g");
+  for (const part of text.split(re)) { if (!part) continue;
+    span.append(esc.some(t => new RegExp("^" + t + "$").test(part)) ? el("mark", { text: part }) : document.createTextNode(part)); }
+  return span;
+}
+/* Seat -> plan. Each seat gets one version per constructed group, plus two real logs.
+   Version, input format and predict-first all alternate so that across seats every item is
+   seen in both versions, both formats, with and without the prediction step. */
+function planFor(seat) {
+  const s = seat === 0 ? 1 : seat;
+  const cons = GROUPS.map((g, gi) => g[(s + gi) % 2]);
+  const seq = [PRACTICE, cons[0], cons[1], cons[2], "PAIR", cons[3], cons[4]];
+  const format = seq.map((id, i) => i === 0 || id === "PAIR" ? "twoq" : ((s + i) % 2 ? "grid" : "twoq"));
+  const predict = seq.map((id, i) => i > 0 && id !== "PAIR" && !!ITEMS[id].pred && ((Math.floor((s - 1) / 2) + i) % 2 === 0));
+  const pairOrder = s % 2 ? [PAIR[0], PAIR[1]] : [PAIR[1], PAIR[0]];
+  return { seq, format, predict, pairOrder };
+}
+function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+let writing = Promise.resolve();
+function save() {
+  const doc = { seat: S.seat, test: S.seat === 0, startedAt: S.startedAt, updatedAt: new Date().toISOString(), version: "v4", answers: S.answers };
+  doc.sid = SID; doc.version = "v4-pages"; doc.n = S.answers.length;
+  store("fault-pilot-v4", doc);
+  const body = new URLSearchParams(); body.append(ENTRY, JSON.stringify(doc));
+  saveState = "sending"; paintStatus();
+  writing = writing.then(() => fetch(FORM + "/formResponse", { method: "POST", mode: "no-cors", body }))
+    .then(() => { sent = doc.n; saveState = "saved"; paintStatus(); }).catch(() => { saveState = "local"; paintStatus(); });
+}
+function paintStatus() {
+  const s = document.getElementById("save-status"); if (!s) return;
+  s.className = "status" + (saveState === "saved" ? " ok" : "");
+  s.textContent = saveState === "saved" ? "Answers sent" : saveState === "sending" ? "Sending…" : (S.answers.length ? "Not sent yet: check your connection" : "Answers are sent as you go");
+}
+function header(title) {
+  const top = el("div", { class: "top" }, el("span", { class: "eyebrow", text: title }));
+  if (isOwner) top.append(el("button", { class: "chip", "aria-pressed": S.view === "results" ? "true" : "false",
+    onclick: () => { S.view = S.view === "results" ? "task" : "results"; render(); } }, S.view === "results" ? "Back to the task" : "Results"));
+  return top;
+}
+function renderWelcome() {
+  app.replaceChildren(header("Lab talk · 23 Oct"), el("h1", { text: "Whose fault was it?" }),
+    el("p", { class: "lede", text: "Someone asked a chatbot to edit a text, the chatbot did, and the person pushed back. For each of 6 short exchanges, tell us whether the model should have done better, whether the person should have said more, both, or neither. The exchanges are made up for this exercise: different people get slightly different versions." }),
+    el("div", { class: "key" }, el("span", {}, el("b", { style: "background:var(--user)" }), "the person"), el("span", {}, el("b", { style: "background:var(--model)" }), "the model")),
+    el("div", { class: "card" },
+      el("div", { class: "row" }, el("span", { class: "lbl", text: "Your seat number (Hirona will count you off)" }),
+        el("div", { class: "seats" }, ...Array.from({ length: 12 }, (_, i) => i + 1).map(n =>
+          el("button", { "aria-pressed": S.seat === n ? "true" : "false", onclick: () => { S.seat = n; renderWelcome(); } }, String(n))))),
+      el("button", { class: "chip", style: "align-self:flex-start", "aria-pressed": S.seat === 0 ? "true" : "false", onclick: () => { S.seat = 0; renderWelcome(); } }, "Just testing (not counted)"),
+      el("p", { class: "hint", text: "No names are collected. Answers are stored without your identity and used to design a labeling task." }),
+      el("button", { class: "btn", disabled: S.seat === null ? "" : null, onclick: start }, "Start")));
+}
+function start() { if (S.seat === null) return; S.plan = planFor(S.seat); S.idx = 0; S.answers = []; S.startedAt = new Date().toISOString(); renderItem(); }
+
+function stepRequest(it) {
+  return el("div", { class: "step" }, el("span", { class: "n u", text: "1" }),
+    el("div", { class: "body" }, el("span", { class: "who u", text: "The person asked" }), el("div", { class: "quote" }, marked(it.request, (it.hl || {}).request))));
+}
+function stepEdit(it, hideEdit) {
+  const t = it.hl || {};
+  const texts = el("div", { class: "texts" },
+    el("div", { class: "tx" }, el("span", { class: "lab", text: "Original · " + it.wo + " words" }), el("div", { class: "t" }, marked(it.original, t.original))));
+  if (!hideEdit) texts.append(el("div", { class: "tx e" }, el("span", { class: "lab", text: "Model's edit · " + it.we + " words" }), el("div", { class: "t" }, marked(it.edit, t.edit))));
+  const body = el("div", { class: "body" }, el("span", { class: "who m", text: hideEdit ? "The original text" : "The model edited it" }), texts);
+  if (!hideEdit && it.lengthBars) { const mx = Math.max(it.wo, it.we);
+    body.append(el("div", { class: "bars", "aria-label": "Length in words" },
+      el("span", { text: "original" }), el("div", { class: "bar o", style: "width:" + (100 * it.wo / mx) + "%" }), el("span", { text: String(it.wo) }),
+      el("span", { text: "edit" }), el("div", { class: "bar e", style: "width:" + (100 * it.we / mx) + "%" }), el("span", { text: String(it.we) }))); }
+  if (!hideEdit && it.fact && !it.lengthBars) body.append(el("div", { class: "fact", text: it.fact }));
+  return el("div", { class: "step" }, el("span", { class: "n m", text: "2" }), body);
+}
+function stepFollow(it) {
+  return el("div", { class: "step" }, el("span", { class: "n u", text: "3" }),
+    el("div", { class: "body" }, el("span", { class: "who u", text: "Then the person wrote" }), el("div", { class: "quote" }, marked(it.followup, (it.hl || {}).followup))));
+}
+function segChoice(opts, onPick, cls = "seg") {
+  const box = el("div", { class: cls });
+  for (const [k, lab] of opts) { const b = el("button", { "aria-pressed": "false", "data-v": k, onclick: () => {
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false")); onPick(k); } }, lab); box.append(b); }
+  return box;
+}
+
+function renderItem() {
+  if (S.plan.seq[S.idx] === "PAIR") return renderPair();
+  const P = S.plan, id = P.seq[S.idx], it = ITEMS[id], practice = S.idx === 0;
+  const fmt = P.format[S.idx], doPredict = P.predict[S.idx];
+  const a = { item: id, group: it.group, version: it.version, constructed: !!it.constructed, order: S.idx, format: fmt,
+              predicted: doPredict ? null : undefined, changed: [], model: null, user: null, clear: null, missing: [], msPredict: 0, ms: 0 };
+  const t0 = performance.now();
+  const dots = el("div", { class: "dots" }, ...P.seq.map((_, i) => el("i", { class: i < S.idx ? "done" : i === S.idx ? "now" : "" })));
+  const top = el("div", { class: "top" }, el("span", { class: "eyebrow", text: practice ? "Practice" : "Exchange " + S.idx + " of " + (P.seq.length - 1) }), dots);
+  const card = el("div", { class: "card" });
+  app.replaceChildren(top, card, el("span", { class: "status", id: "save-status" })); paintStatus();
+
+  if (doPredict) {
+    card.append(stepRequest(it), stepEdit(it, true));
+    const next = el("button", { class: "btn", disabled: "" }, "Show what the model did");
+    const pr = el("div", { class: "predict" }, el("span", { class: "mode", text: "Before you see the edit" }), el("div", { class: "qt", text: it.pred.q }),
+      segChoice(it.pred.opts, k => { a.predicted = k; next.removeAttribute("disabled"); }));
+    next.addEventListener("click", () => { a.msPredict = Math.round(performance.now() - t0); showRest(); });
+    card.append(pr, next);
+  } else showRest();
+
+  function showRest() {
+    const t1 = performance.now();
+    card.replaceChildren(stepRequest(it), stepEdit(it, false), stepFollow(it));
+    if (doPredict) { const lab = it.pred.opts.find(o => o[0] === a.predicted); card.append(el("p", { class: "hint", text: "You predicted: " + (lab ? lab[1] : "") })); }
+    const next = el("button", { class: "btn", disabled: "" }, S.idx === P.seq.length - 1 ? "Finish (will open a gform link)" : "Next");
+    const after = el("div", { class: "qs" });
+    const answered = () => a.model !== null && a.user !== null;
+    const anyCant = () => a.model === "cant" || a.user === "cant";
+    const ready = () => a.changed.length > 0 && answered() && (anyCant() ? a.missing.length > 0 : !!a.clear);
+    const check = () => { if (ready()) next.removeAttribute("disabled"); else next.setAttribute("disabled", ""); };
+    function paintAfter() {
+      after.replaceChildren();
+      if (!answered()) return;
+      if (anyCant()) {
+        a.clear = null;
+        const chips = el("div", { class: "seg" }, ...MISSING.map(([k, lab]) => el("button", { class: "chip", "aria-pressed": a.missing.includes(k) ? "true" : "false", onclick: ev => {
+          const on = ev.currentTarget.getAttribute("aria-pressed") !== "true"; ev.currentTarget.setAttribute("aria-pressed", on ? "true" : "false");
+          a.missing = on ? [...a.missing, k] : a.missing.filter(x => x !== k); check(); } }, lab)));
+        after.append(el("div", { class: "row" }, el("span", { class: "lbl", text: "What would you need to know? (tap any)" }), chips));
+      } else {
+        a.missing = [];
+        after.append(el("div", { class: "row" }, el("span", { class: "lbl", text: "How clear-cut is this?" }),
+          segChoice([["obvious", "Obvious"], ["arguable", "Arguable"]], k => { a.clear = k; check(); })));
+      }
+      check();
+    }
+    const changed = el("div", { class: "seg" }, ...CHANGED.map(([k, lab]) => el("button", { class: "chip", "aria-pressed": "false", onclick: ev => {
+      const on = ev.currentTarget.getAttribute("aria-pressed") !== "true";
+      if (on && k === "none") { changed.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false")); a.changed = []; }
+      if (on && k !== "none") { const nb = changed.querySelector('[data-k="none"]'); nb.setAttribute("aria-pressed", "false"); a.changed = a.changed.filter(x => x !== "none"); }
+      ev.currentTarget.setAttribute("aria-pressed", on ? "true" : "false");
+      a.changed = on ? [...a.changed, k] : a.changed.filter(x => x !== k); check(); }, "data-k": k }, lab)));
+    const q = el("div", { class: "q" }, el("div", { class: "row" }, el("span", { class: "lbl", text: "What did the edit change, compared with the original? (tap any)" }), changed),
+      el("span", { class: "mode", text: practice ? "Practice" : (fmt === "grid" ? "One tap" : "Two questions") }));
+    if (fmt === "twoq") {
+      const YN = [["yes", "Yes"], ["no", "No"], ["cant", "Can't tell"]];
+      q.append(el("div", { class: "ql m", text: "Should the model have done better?" }), segChoice(YN, k => { a.model = k; paintAfter(); }, "yn m"),
+        el("div", { class: "ql u", text: "Should the person have said more in their request?" }), segChoice(YN, k => { a.user = k; paintAfter(); }, "yn u"));
+    } else {
+      const map = { model: ["yes", "no"], both: ["yes", "yes"], neither: ["no", "no"], user: ["no", "yes"] };
+      const grid = el("div", { class: "grid2" });
+      const cells = [];
+      const mk = (qk, title, sub) => { const c = el("button", { class: "cell", "data-q": qk, "aria-pressed": "false", onclick: () => {
+        cells.forEach(x => x.setAttribute("aria-pressed", x === c ? "true" : "false")); cant.setAttribute("aria-pressed", "false");
+        [a.model, a.user] = map[qk]; paintAfter(); } }, title, el("small", { text: sub })); cells.push(c); return c; };
+      grid.append(el("span"), el("span", { class: "ax top", text: "Person said enough" }), el("span", { class: "ax top", text: "Person should have said more" }),
+        el("span", { class: "ax side", text: "Model should have done better" }), mk("model", "Model's fault", "the request was enough"), mk("both", "Both", "each could have done better"),
+        el("span", { class: "ax side", text: "Model did fine" }), mk("neither", "Neither", "a fair edit, a fair follow-up"), mk("user", "Person's fault", "the request left it out"));
+      const cant = el("button", { class: "chip cantbtn", "aria-pressed": "false", onclick: () => {
+        cells.forEach(x => x.setAttribute("aria-pressed", "false")); cant.setAttribute("aria-pressed", "true"); a.model = "cant"; a.user = "cant"; paintAfter(); } }, "Can't tell");
+      q.append(el("div", { class: "qt", text: "Whose fault was the mismatch?" }), grid, cant);
+    }
+    q.append(after);
+    const fb = el("div", { class: "feedback", hidden: "" }, "Most people say: the model should have done better (the request asked for two sentences and the edit has four), and the person said enough. The next ones are less clear-cut.");
+    next.addEventListener("click", () => {
+      if (!ready()) return;
+      if (practice && fb.hidden) { fb.hidden = false; next.textContent = "Start"; fb.scrollIntoView({ block: "nearest", behavior: "smooth" }); return; }
+      a.ms = Math.round(performance.now() - t1);
+      S.answers = S.answers.filter(x => x.item !== id).concat([a]); save();
+      S.idx += 1; if (S.idx >= P.seq.length) renderDone(); else { renderItem(); window.scrollTo({ top: 0 }); }
+    });
+    card.append(q, fb, next);
+  }
+}
+function compact(it, label) {
+  const t = it.hl || {};
+  return el("div", { class: "vbox" }, el("span", { class: "eyebrow", text: label }),
+    el("span", { class: "who u", text: "Asked" }), el("div", { class: "quote" }, marked(it.request, t.request)),
+    el("div", { class: "tx" }, el("span", { class: "lab", text: "Original" }), el("div", { class: "t" }, marked(it.original, t.original))),
+    el("div", { class: "tx e" }, el("span", { class: "lab", text: "Model's edit" }), el("div", { class: "t" }, marked(it.edit, t.edit))),
+    el("span", { class: "who u", text: "Then wrote" }), el("div", { class: "quote" }, marked(it.followup, t.followup)));
+}
+function renderPair() {
+  const P = S.plan, [ia, ib] = P.pairOrder;
+  const a = { item: "pair_source_clue", group: "source_clue", order: S.idx, left: ia, right: ib, choice: null, differs: [], ms: 0 };
+  const t0 = performance.now();
+  const dots = el("div", { class: "dots" }, ...P.seq.map((_, i) => el("i", { class: i < S.idx ? "done" : i === S.idx ? "now" : "" })));
+  const next = el("button", { class: "btn", disabled: "" }, S.idx === P.seq.length - 1 ? "Finish (will open a gform link)" : "Next");
+  const check = () => { if (a.choice && a.differs.length) next.removeAttribute("disabled"); else next.setAttribute("disabled", ""); };
+  const differs = el("div", { class: "seg" }, ...[["request","The request"],["original","The original"],["edit","The edit"],["reply","The reply"]].map(([k, lab]) =>
+    el("button", { class: "chip", "aria-pressed": "false", onclick: ev => { const on = ev.currentTarget.getAttribute("aria-pressed") !== "true";
+      ev.currentTarget.setAttribute("aria-pressed", on ? "true" : "false"); a.differs = on ? [...a.differs, k] : a.differs.filter(x => x !== k); check(); } }, lab)));
+  const q = el("div", { class: "q" }, el("span", { class: "mode", text: "Side by side" }),
+    el("div", { class: "row" }, el("span", { class: "lbl", text: "What differs between A and B? (tap any)" }), differs),
+    el("div", { class: "qt", text: "In which exchange is the model more at fault?" }),
+    segChoice([["A", "A"], ["B", "B"], ["same", "About the same"], ["cant", "Can't tell"]], k => { a.choice = k === "A" ? ia : k === "B" ? ib : k; check(); }, "yn four"));
+  next.addEventListener("click", () => { a.ms = Math.round(performance.now() - t0);
+    S.answers = S.answers.filter(x => x.item !== a.item).concat([a]); save();
+    S.idx += 1; if (S.idx >= P.seq.length) renderDone(); else { renderItem(); window.scrollTo({ top: 0 }); } });
+  app.replaceChildren(el("div", { class: "top" }, el("span", { class: "eyebrow", text: "Exchange " + S.idx + " of " + (P.seq.length - 1) + " · two at once" }), dots),
+    el("div", { class: "card" }, el("p", { class: "lede", text: "Two people sent the same request. Compare them." }),
+      el("div", { class: "vs" }, compact(ITEMS[ia], "A"), compact(ITEMS[ib], "B")), q, next),
+    el("span", { class: "status", id: "save-status" }));
+  paintStatus();
+}
+function renderDone() {
+  const kids = [header("Done"), el("h1", { text: "Thank you." }),
+    el("p", { class: "lede", text: "Your answers help decide how to ask this question when we label thousands of these, and how to brief an AI judge to do it." }),
+    el("span", { class: "status", id: "save-status" })];
+  {
+    const payload = JSON.stringify({ sid: SID, s: S.seat, a: S.answers.map(x => x.item.startsWith("pair") ? [x.item, x.left, x.choice, x.differs.join("+"), x.ms] : [x.item, x.format, x.predicted ?? "", (x.changed || []).join("+"), x.model, x.user, x.clear ?? "", x.missing.join("+"), x.ms]) });
+    const formUrl = FORM + "/viewform?usp=pp_url&" + ENTRY + "=" + encodeURIComponent(payload);
+    if (!S.formOpened) { S.formOpened = true; let w = null; try { w = window.open(formUrl, "_blank"); } catch (e) {} if (!w) { location.href = formUrl; } }
+    const pre = el("pre", { class: "copy", text: payload });
+    kids.push(el("div", { class: "card" }, el("p", {}, "A Google Form opened in a new tab with your answers already filled in. ", el("b", { text: "Tap Submit there." }), " If it didn't open, use the button below."),
+      el("a", { class: "btn", href: formUrl, target: "_blank", rel: "noopener" }, "Open the form with my answers"),
+      el("p", { class: "hint", text: "If the form won't load, copy your answers and send them to Hirona." }), pre,
+      el("button", { class: "btn", onclick: async ev => { try { await navigator.clipboard.writeText(payload); ev.currentTarget.textContent = "Copied"; }
+        catch (e) { const rg = document.createRange(); rg.selectNodeContents(pre); const s = getSelection(); s.removeAllRanges(); s.addRange(rg); ev.currentTarget.textContent = "Selected: copy it"; } } }, "Copy my answers")));
+  }
+  app.replaceChildren(...kids); paintStatus();
+}
+/* Owner-only live results: per group, the two versions side by side. */
+const Q = [["model","Model","var(--model)"],["both","Both","var(--both)"],["user","Person","var(--user)"],["neither","Neither","var(--ink3)"],["cant","Can't tell","var(--line)"]];
+function quad(x) { if (x.model === "cant" || x.user === "cant") return "cant"; if (x.model === "yes") return x.user === "yes" ? "both" : "model"; return x.user === "yes" ? "user" : "neither"; }
+let unsub = null, docs = [];
+function renderResults() {
+  const box = el("div", { class: "res" });
+  app.replaceChildren(header("Results · live"), el("h2", { text: "What the room said" }),
+    el("div", { class: "key" }, ...Q.map(([k, lab, c]) => el("span", {}, el("b", { style: "background:" + c }), lab))), box);
+  if (!db) { box.append(el("p", { class: "hint", text: "Results need the shared store, which isn't available in this view." })); return; }
+  const stackFor = ans => { const st = el("div", { class: "stack" }); for (const [k, lab, c] of Q) { const n = ans.filter(x => quad(x) === k).length;
+    if (n) st.append(el("span", { style: "width:" + (100 * n / ans.length) + "%;background:" + c, title: lab + ": " + n })); } return st; };
+  const summary = ans => { if (!ans.length) return "no answers yet"; const cnt = {}; ans.forEach(x => cnt[quad(x)] = (cnt[quad(x)] || 0) + 1);
+    const top = Object.entries(cnt).sort((p, q) => q[1] - p[1])[0]; const lab = Q.find(q => q[0] === top[0])[1];
+    const pred = ans.filter(x => x.predicted); const ps = pred.length ? " · predicted: " + pred.map(x => x.predicted).join(", ") : "";
+    return ans.length + " answers · most: " + lab + " (" + Math.round(100 * top[1] / ans.length) + "%)" + ps; };
+  const paint = () => {
+    const real = docs.filter(d => !d.test && d.version === "v4"), all = real.flatMap(d => d.answers || []);
+    box.replaceChildren(el("p", { class: "small", text: real.length + " people · " + (docs.length - real.length) + " test runs hidden" }));
+    for (const g of GROUPS) {
+      const it0 = ITEMS[g[0]], vs = el("div", { class: "vs" });
+      for (const id of g) { const it = ITEMS[id], ans = all.filter(x => x.item === id);
+        const ch = {}; ans.forEach(x => (x.changed || []).forEach(k => ch[k] = (ch[k] || 0) + 1));
+        const noticed = Object.entries(ch).sort((p, q) => q[1] - p[1]).map(([k, n]) => k + " " + n).join(", ");
+        vs.append(el("div", { class: "vbox" }, el("strong", { text: it.note || it.version }), stackFor(ans), el("span", { class: "small", text: summary(ans) }),
+          el("span", { class: "small", text: "noticed: " + (noticed || "–") }))); }
+      box.append(el("div", { class: "it" }, el("span", { class: "eyebrow", text: GROUP_NAME[it0.group] || "" }), vs));
+    }
+    const pr = all.filter(x => x.item === "pair_source_clue");
+    if (pr.length) { const cnt = k => pr.filter(x => x.choice === k).length;
+      box.append(el("div", { class: "it" }, el("span", { class: "eyebrow", text: GROUP_NAME.source_clue }),
+        el("span", { class: "small", text: "model more at fault in: " + ITEMS[PAIR[0]].note + " " + cnt(PAIR[0]) + " · " + ITEMS[PAIR[1]].note + " " + cnt(PAIR[1]) +
+          " · about the same " + cnt("same") + " · can't tell " + cnt("cant") }),
+        el("span", { class: "small", text: "said the original differs: " + pr.filter(x => x.differs.includes("original")).length + " of " + pr.length }))); }
+    const fmt = f => all.filter(x => x.format === f && x.order > 0 && !x.item.startsWith("pair"));
+    box.append(el("div", { class: "it" }, el("span", { class: "eyebrow", text: "Input format" }),
+      el("div", { class: "vs" }, el("div", { class: "vbox" }, el("strong", { text: "Two questions" }), stackFor(fmt("twoq")), el("span", { class: "small", text: fmt("twoq").length + " answers · median " + med(fmt("twoq")) + " s" })),
+        el("div", { class: "vbox" }, el("strong", { text: "One-tap grid" }), stackFor(fmt("grid")), el("span", { class: "small", text: fmt("grid").length + " answers · median " + med(fmt("grid")) + " s" })))));
+    const json = JSON.stringify(docs);
+    box.append(el("button", { class: "btn ghost", onclick: async ev => { try { await navigator.clipboard.writeText(json); ev.currentTarget.textContent = "Copied"; } catch (e) { ev.currentTarget.textContent = "Copy failed: ask Claude to read the results"; } } }, "Copy all answers (JSON)"));
+  };
+  if (!unsub) unsub = db.collection("responses").onSnapshot(s => { docs = s.docs.map(d => ({ id: d.id, ...d.data() })); if (S.view === "results") paint(); }, () => {});
+  paint();
+}
+function med(xs) { if (!xs.length) return 0; const v = xs.map(x => x.ms).sort((p, q) => p - q); return Math.round(v[Math.floor(v.length / 2)] / 1000); }
+function render() { if (S.view === "results") return renderResults(); if (!S.plan) return renderWelcome(); if (S.idx >= S.plan.seq.length) return renderDone(); renderItem(); }
+renderWelcome();
+
+
+</script>
+</body>
+</html>
